@@ -14,6 +14,9 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
@@ -159,6 +162,24 @@ public class EventosWeb extends AppCompatActivity {
                 return;
             }
         }
+    }
+    // menu
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_eventos_web, menu);
+        return true;
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        View vista = (View) findViewById(android.R.id.content);
+        Bundle bundle = new Bundle();
+        int id = item.getItemId();
+        switch (id) {
+            case R.id.show_web:
+                navegador.loadUrl("https://us-central1-eventos-98475.cloudfunctions.net/mostrarEventosHtml?evento=" + evento);
+                break;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }
 

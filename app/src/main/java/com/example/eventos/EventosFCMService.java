@@ -15,7 +15,7 @@ public class EventosFCMService extends FirebaseMessagingService {
             evento = evento + "Ciudad: " + remoteMessage.getData().get("ciudad") + "\n";
             evento = evento + "Comentario: " + remoteMessage.getData().get("comentario");
             // añado chequeo de null porque da error al ejecutar en pixel 2
-            if (remoteMessage.getNotification()!= null && remoteMessage.getNotification().getClickAction().equals("OPEN_ACTIVITY_1")) {
+            if (remoteMessage.getNotification().getClickAction() != null && remoteMessage.getNotification().getClickAction().equals("OPEN_ACTIVITY_1")) {
                 String body = remoteMessage.getNotification().getBody();
                 mostrarDialogo(getApplicationContext(), body, remoteMessage.getData().get("evento"));
             } else {

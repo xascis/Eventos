@@ -67,6 +67,16 @@
                 <action android:name="OPEN_ACTIVITY_1" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="eventos-98475.firebaseapp.com"
+                    android:scheme="https" />
+            </intent-filter>
         </activity>
         <activity
             android:name=".FotografiasDrive"
@@ -74,6 +84,7 @@
             android:theme="@style/AppTheme.NoActionBar">
 
         </activity>
+
         <provider
             android:name="android.support.v4.content.FileProvider"
             android:authorities="${applicationId}.provider"

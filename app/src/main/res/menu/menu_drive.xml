@@ -1,7 +1,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="org.example.eventosx.FotografiasDrive">
+    tools:context="org.example.eventos.FotografiasDrive">
     <item
         android:id="@+id/action_camara"
         android:orderInCategory="100"

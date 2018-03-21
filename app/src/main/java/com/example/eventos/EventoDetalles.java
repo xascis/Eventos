@@ -77,7 +77,10 @@ public class EventoDetalles extends AppCompatActivity {
         imgImagen = (ImageView) findViewById(R.id.imgImagen);
         Bundle extras = getIntent().getExtras();
         evento = extras.getString("evento");
-        if (evento == null) evento = "";
+        if (evento == null) {
+            android.net.Uri url = getIntent().getData();
+            evento = url.getQueryParameter("evento");
+        }
         registros = FirebaseFirestore.getInstance().collection("eventos");
         registros.document(evento).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
             @Override
@@ -107,6 +110,7 @@ public class EventoDetalles extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
         mFirebaseAnalytics.setUserProperty("evento_detalle", evento);
     }
 
