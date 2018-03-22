@@ -4,7 +4,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
@@ -12,28 +14,34 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 
 import com.firebase.ui.firestore.FirestoreRecyclerOptions;
+import com.google.android.gms.appinvite.AppInvite;
+import com.google.android.gms.appinvite.AppInviteInvitation;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.storage.FirebaseStorage;
 
+import static com.example.eventos.Comun.mFirebaseAnalytics;
 import static com.example.eventos.Comun.mostrarDialogo;
 import static com.example.eventos.Comun.storage;
 import static com.example.eventos.Comun.storageRef;
-import static com.example.eventos.Comun.mFirebaseAnalytics;
 import static com.example.eventos.EventosFirestore.EVENTOS;
-import static com.example.eventos.EventosFirestore.crearEventos;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
     private AdaptadorEventos adaptador;
     private static MainActivity current;
+    // firebase invites
+    private GoogleApiClient mGoogleApiClient;
+    private static final int REQUEST_INVITE = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,6 +97,11 @@ public class MainActivity extends AppCompatActivity {
 //        ActivityCompat.requestPermissions(MainActivity.this, new String[]{android.Manifest.permission.CAMERA}, 2);
 
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+        // Firebase invites
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(AppInvite.API)
+                .enableAutoManage(this, this)
+                .build();
     }
 
     @Override
@@ -109,7 +122,36 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
             return true;
         }
+        // firebase invites
+        if (id == R.id.action_invitar) {
+            invitar();
+        }
         return super.onOptionsItemSelected(item);
+    }
+
+    // firebase invites
+    private void invitar() {
+        Intent intent = new AppInviteInvitation.IntentBuilder(getString(R.string.invitation_title))
+                .setMessage(getString(R.string.invitation_message))
+                .setDeepLink(Uri.parse(getString(R.string.invitation_deep_link)))
+                .setCustomImage(Uri.parse(getString(R.string.invitation_custom_image)))
+                .setCallToActionText(getString(R.string.invitation_cta))
+                .build();
+        startActivityForResult(intent, REQUEST_INVITE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_INVITE) {
+            if (resultCode == RESULT_OK) {
+                String[] ids = AppInviteInvitation.getInvitationIds(resultCode, data);
+            } else {
+                Toast.makeText(this,
+                        "Error al enviar la invitación",
+                        Toast.LENGTH_LONG);
+            }
+        }
     }
 
     @Override
@@ -179,5 +221,14 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
         }
+    }
+
+    // firebase invites
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        Toast.makeText(this,
+                "Error al enviar la invitación",
+                Toast.LENGTH_SHORT)
+                .show();
     }
 }
