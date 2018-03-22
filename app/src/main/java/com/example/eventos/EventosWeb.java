@@ -28,6 +28,7 @@ public class EventosWeb extends AppCompatActivity {
     WebView navegador;
     ProgressDialog dialogo;
     String evento;
+    String descuento;
     final InterfazComunicacion miInterfazJava = new InterfazComunicacion(this);
 
     @SuppressLint("JavascriptInterface")
@@ -38,6 +39,13 @@ public class EventosWeb extends AppCompatActivity {
 
         Bundle extras = getIntent().getExtras();
         evento = extras.getString("evento");
+
+        // si el evento no existe -> se abre aplicacion mediante enlace dinamico
+        if (evento == null) {
+            android.net.Uri url = getIntent().getData();
+            evento = url.getQueryParameter("evento");
+            descuento = url.getQueryParameter("descuento");
+        }
 
         navegador = (WebView) findViewById(R.id.webkit);
         navegador.getSettings().setJavaScriptEnabled(true);
@@ -86,7 +94,9 @@ public class EventosWeb extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 dialogo.dismiss();
-                navegador.loadUrl("javascript:muestraEvento(\"" + evento + "\");");
+                navegador.loadUrl(
+                        "javascript:muestraEvento(\"" + evento + "\", \"" + descuento + "\")"
+                );
             }
 
             // mensajes de error

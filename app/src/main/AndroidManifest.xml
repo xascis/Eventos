@@ -97,6 +97,16 @@
         <activity
             android:name=".EventosWeb"
             android:label="Acerca de...">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="descuentos.eventos-98475.firebaseapp.com"
+                    android:scheme="https" />
+            </intent-filter>
 
         </activity>
 
