@@ -80,6 +80,9 @@ public class EventoDetalles extends AppCompatActivity {
         if (evento == null) {
             android.net.Uri url = getIntent().getData();
             evento = url.getQueryParameter("evento");
+            if (evento == null) {
+                evento = " ";
+            }
         }
         registros = FirebaseFirestore.getInstance().collection("eventos");
         registros.document(evento).get().addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
