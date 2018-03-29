@@ -11,4 +11,5 @@ https://principal.eventos-98475.firebaseapp.com?descuento=15</string>
 https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x
 92dp.png</string>
     <string name="invitation_cta">Instalar!!</string>
+    <string name="com.crashlytics.useFirebaseAppId">true</string>
 </resources>

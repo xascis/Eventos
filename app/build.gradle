@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'io.fabric'
 
 android {
     compileSdkVersion 27
@@ -32,6 +33,10 @@ dependencies {
 
     implementation 'com.google.firebase:firebase-messaging:11.8.0'
     implementation 'com.google.firebase:firebase-invites:11.8.0'
+    implementation 'com.google.firebase:firebase-config:11.8.0'
+    compile('com.crashlytics.sdk.android:crashlytics:2.7.0-SNAPSHOT@aar') {
+        transitive = true;
+    }
 
     implementation 'com.google.firebase:firebase-core:11.8.0'
     implementation 'com.google.firebase:firebase-firestore:11.8.0'
