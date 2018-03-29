@@ -1,15 +1,18 @@
 package com.example.eventos;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -161,12 +164,46 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                     }
                 });
 
-//        Fabric.with(this, new Crashlytics());
-        final Fabric fabric = new Fabric.Builder(this)
-                .kits(new Crashlytics())
-                .debuggable(true)           // Enables Crashlytics debugger
-                .build();
-        Fabric.with(fabric);
+        final SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("Preferencias", Context.MODE_PRIVATE);
+        // si el usuario permite el envio de mensajes activar ->
+        if (!sharedPreferences.contains("crashlytics")){
+            // dialogo de alerta
+            AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+            alertDialog.setTitle("Mensaje:");
+            alertDialog.setMessage("Con el fin de mejorar la aplicaci\u00f3n, " +
+                    "te pedimos que participes en el env\u00edo autom\u00e1tico " +
+                    "de errores a nuestros servidores. \u00bfEst\u00e1s de acuerdo?\u201d");
+            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "NO",
+                    new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    final SharedPreferences sharedPreferences1 =
+                            getApplicationContext().getSharedPreferences("Preferencias", Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editorPreferences = sharedPreferences1.edit();
+                    editorPreferences.putBoolean("crashlytics", false);
+                    editorPreferences.commit();
+                    dialog.dismiss();
+                }
+            });
+            alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "SI",
+                    new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    final SharedPreferences sharedPreferences1 =
+                            getApplicationContext().getSharedPreferences("Preferencias", Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editorPreferences = sharedPreferences1.edit();
+                    editorPreferences.putBoolean("crashlytics", true);
+                    editorPreferences.commit();
+                    dialog.dismiss();
+                }
+            });
+            alertDialog.show();
+        } else if (sharedPreferences.getBoolean("crashlytics", false)){
+            Fabric.with(this, new Crashlytics());
+        }
+//        final Fabric fabric = new Fabric.Builder(this)
+//                .kits(new Crashlytics())
+//                .debuggable(true)           // Enables Crashlytics debugger
+//                .build();
+//        Fabric.with(fabric);
     }
 
     @Override
