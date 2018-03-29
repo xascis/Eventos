@@ -47,6 +47,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.example.eventos.Comun.acercaDe;
 import static com.example.eventos.Comun.getStorageReference;
 import static com.example.eventos.Comun.mFirebaseAnalytics;
 import static com.example.eventos.Comun.mostrarDialogo;
@@ -144,6 +145,9 @@ public class EventoDetalles extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_detalles, menu);
+        if (!acercaDe) {
+            menu.removeItem(R.id.action_acercaDe);
+        }
         return true;
     }
 

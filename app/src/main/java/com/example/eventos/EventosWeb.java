@@ -24,6 +24,8 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import static com.example.eventos.Comun.colorFondo;
+
 public class EventosWeb extends AppCompatActivity {
     WebView navegador;
     ProgressDialog dialogo;
@@ -94,6 +96,7 @@ public class EventosWeb extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 dialogo.dismiss();
+                navegador.loadUrl("javascript:colorFondo(\"" + colorFondo + "\")");
                 navegador.loadUrl(
                         "javascript:muestraEvento(\"" + evento + "\", \"" + descuento + "\")"
                 );

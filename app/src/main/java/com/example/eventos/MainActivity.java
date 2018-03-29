@@ -27,16 +27,23 @@ import com.google.android.gms.appinvite.AppInviteReferral;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
+import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings;
 import com.google.firebase.storage.FirebaseStorage;
 
 import static com.example.eventos.Comun.mFirebaseAnalytics;
+import static com.example.eventos.Comun.mFirebaseRemoteConfig;
 import static com.example.eventos.Comun.mostrarDialogo;
 import static com.example.eventos.Comun.storage;
 import static com.example.eventos.Comun.storageRef;
+import static com.example.eventos.Comun.colorFondo;
+import static com.example.eventos.Comun.acercaDe;
 import static com.example.eventos.EventosFirestore.EVENTOS;
 
 public class MainActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
@@ -125,6 +132,31 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                             }
                         }
                 );
+        mFirebaseRemoteConfig = FirebaseRemoteConfig.getInstance();
+        FirebaseRemoteConfigSettings configSettings =
+                new FirebaseRemoteConfigSettings
+                        .Builder()
+                        .setDeveloperModeEnabled(BuildConfig.DEBUG)
+                        .build();
+        mFirebaseRemoteConfig.setConfigSettings(configSettings);
+        mFirebaseRemoteConfig.setDefaults(R.xml.remote_config_default);
+        long cacheExpiration = 3600;
+        mFirebaseRemoteConfig.fetch(cacheExpiration)
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        mFirebaseRemoteConfig.activateFetched();
+                        getColorFondo();
+                        getAcercaDe();
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception exception) {
+                        colorFondo = mFirebaseRemoteConfig.getString("color_fondo");
+                        acercaDe = mFirebaseRemoteConfig.getBoolean("acerca_de");
+                    }
+                });
     }
 
     @Override
@@ -253,5 +285,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                 "Error al enviar la invitación",
                 Toast.LENGTH_SHORT)
                 .show();
+    }
+    // remote config
+    private void getColorFondo() {
+        colorFondo = mFirebaseRemoteConfig.getString("color_fondo");
+    }
+    private void getAcercaDe() {
+        acercaDe = mFirebaseRemoteConfig.getBoolean("acerca_de");
     }
 }
