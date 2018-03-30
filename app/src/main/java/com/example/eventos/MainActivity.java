@@ -17,6 +17,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -146,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                         .build();
         mFirebaseRemoteConfig.setConfigSettings(configSettings);
         mFirebaseRemoteConfig.setDefaults(R.xml.remote_config_default);
-        long cacheExpiration = 3600;
+        long cacheExpiration = 0;
         mFirebaseRemoteConfig.fetch(cacheExpiration)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
@@ -154,6 +155,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                         mFirebaseRemoteConfig.activateFetched();
                         getColorFondo();
                         getAcercaDe();
+                        Log.w("COLOR", "El color es: " + colorFondo);
+                        Toast.makeText(MainActivity.this, "SUCCESS", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {

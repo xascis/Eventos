@@ -96,10 +96,10 @@ public class EventosWeb extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 dialogo.dismiss();
+                navegador.loadUrl("javascript:colorFondo(\"" + colorFondo + "\")");
                 navegador.loadUrl(
                         "javascript:muestraEvento(\"" + evento + "\", \"" + descuento + "\")"
                 );
-                navegador.loadUrl("javascript:colorFondo(\"" + colorFondo + "\")");
             }
 
             // mensajes de error
