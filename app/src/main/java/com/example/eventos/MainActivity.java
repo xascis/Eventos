@@ -37,6 +37,7 @@ import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.perf.FirebasePerformance;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings;
 import com.google.firebase.storage.FirebaseStorage;
@@ -155,8 +156,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                         mFirebaseRemoteConfig.activateFetched();
                         getColorFondo();
                         getAcercaDe();
-                        Log.w("COLOR", "El color es: " + colorFondo);
-                        Toast.makeText(MainActivity.this, "SUCCESS", Toast.LENGTH_SHORT).show();
+                        boolean performaceMonitoring =
+                                mFirebaseRemoteConfig.getBoolean("PerformanceMonitoring");
+                        FirebasePerformance.getInstance()
+                                .setPerformanceCollectionEnabled(performaceMonitoring);
+//                        Log.w("COLOR", "El color es: " + colorFondo);
+//                        Toast.makeText(MainActivity.this, "SUCCESS", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(new OnFailureListener() {
@@ -164,6 +169,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                     public void onFailure(@NonNull Exception exception) {
                         colorFondo = mFirebaseRemoteConfig.getString("color_fondo");
                         acercaDe = mFirebaseRemoteConfig.getBoolean("acerca_de");
+                        boolean performaceMonitoring =
+                                mFirebaseRemoteConfig.getBoolean("PerformanceMonitoring");
+                        FirebasePerformance.getInstance()
+                                .setPerformanceCollectionEnabled(performaceMonitoring);
                     }
                 });
 

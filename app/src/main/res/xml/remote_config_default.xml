@@ -8,4 +8,8 @@
         <key>acerca_de</key>
         <value>true</value>
     </entry>
+    <entry>
+        <key>PerformanceMonitoring</key>
+        <value>false</value>
+    </entry>
 </defaultsMap>
