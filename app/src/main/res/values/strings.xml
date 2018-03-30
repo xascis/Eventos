@@ -12,4 +12,5 @@ https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x
 92dp.png</string>
     <string name="invitation_cta">Instalar!!</string>
     <string name="com.crashlytics.useFirebaseAppId">true</string>
+    <string name="facebook_app_id">1734995303190383</string>
 </resources>
