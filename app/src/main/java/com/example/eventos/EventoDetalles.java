@@ -31,6 +31,8 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.perf.FirebasePerformance;
+import com.google.firebase.perf.metrics.Trace;
 import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnPausedListener;
@@ -67,6 +69,7 @@ public class EventoDetalles extends AppCompatActivity {
     static UploadTask uploadTask = null;
     StorageReference imagenRef;
     final int SOLICITUD_FOTOGRAFIAS_DRIVE = 102;
+    Trace mTrace;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,6 +119,10 @@ public class EventoDetalles extends AppCompatActivity {
 
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
         mFirebaseAnalytics.setUserProperty("evento_detalle", evento);
+
+        mTrace =
+                FirebasePerformance.getInstance().newTrace("trace_EventoDetalles");
+        mTrace.start();
     }
 
     private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
@@ -449,5 +456,17 @@ public class EventoDetalles extends AppCompatActivity {
         });
         alertDialog.show();
 
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mTrace.start();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        mTrace.stop();
     }
 }
