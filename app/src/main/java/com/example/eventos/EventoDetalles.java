@@ -32,6 +32,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.perf.FirebasePerformance;
+import com.google.firebase.perf.metrics.AddTrace;
 import com.google.firebase.perf.metrics.Trace;
 import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
@@ -72,8 +73,12 @@ public class EventoDetalles extends AppCompatActivity {
     Trace mTrace;
 
     @Override
+    @AddTrace(name = "onCreate_eventosDetalles_Trace")
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mTrace =
+                FirebasePerformance.getInstance().newTrace("trace_EventoDetalles");
+        mTrace.start();
         setContentView(R.layout.evento_detalles);
         txtEvento = (TextView) findViewById(R.id.txtEvento);
         txtFecha = (TextView) findViewById(R.id.txtFecha);
@@ -120,9 +125,7 @@ public class EventoDetalles extends AppCompatActivity {
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
         mFirebaseAnalytics.setUserProperty("evento_detalle", evento);
 
-        mTrace =
-                FirebasePerformance.getInstance().newTrace("trace_EventoDetalles");
-        mTrace.start();
+
     }
 
     private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
