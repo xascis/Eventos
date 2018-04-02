@@ -34,6 +34,11 @@ import com.facebook.HttpMethod;
 import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
+import com.facebook.share.Sharer;
+import com.facebook.share.model.ShareLinkContent;
+import com.facebook.share.model.SharePhoto;
+import com.facebook.share.model.SharePhotoContent;
+import com.facebook.share.widget.ShareDialog;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -84,8 +89,10 @@ public class EventoDetalles extends AppCompatActivity {
     final int SOLICITUD_FOTOGRAFIAS_DRIVE = 102;
     Trace mTrace;
 
+    boolean compartirConAPIGraph = false;
     LoginButton loginButtonOficial;
     private CallbackManager elCallbackManagerDeFacebook;
+    private ShareDialog elShareDialog;
 
     @Override
     @AddTrace(name = "onCreate_eventosDetalles_Trace")
@@ -162,6 +169,24 @@ public class EventoDetalles extends AppCompatActivity {
             }
         });
 
+        this.elShareDialog = new ShareDialog(this);
+        this.elShareDialog.registerCallback(this.elCallbackManagerDeFacebook, new FacebookCallback<Sharer.Result>() {
+            @Override
+            public void onSuccess(Sharer.Result result) {
+                Toast.makeText(EventoDetalles.this, "Facebook login success", Toast.LENGTH_SHORT).show();
+                EventoDetalles.this.loginButtonOficial.setEnabled(false);
+            }
+
+            @Override
+            public void onCancel() {
+                Toast.makeText(EventoDetalles.this, "Login Canceled", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onError(FacebookException error) {
+                Toast.makeText(EventoDetalles.this, "Login Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
@@ -250,6 +275,7 @@ public class EventoDetalles extends AppCompatActivity {
     }
 
     private void compartir() {
+        // facebook mediante API Graph
         // comprobar que está el login realizado
         if (AccessToken.getCurrentAccessToken() != null) {
             // crea un alertdialog para que el usuario elija entre texto e imagen
@@ -259,49 +285,64 @@ public class EventoDetalles extends AppCompatActivity {
             dialogoSeleccion.setButton(AlertDialog.BUTTON_NEUTRAL, "Texto", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    // enviar texto con API Graph
-                    Bundle params = new Bundle();
-                    final String textoQueEnviar = txtEvento.getText() + ", " + txtFecha.getText() + " en " + txtCiudad.getText();
-                    params.putString("message", textoQueEnviar);
-                    GraphRequest request = new GraphRequest(
-                            AccessToken.getCurrentAccessToken(),
-                            "/me/feed",
-                            params,
-                            HttpMethod.POST,
-                            new GraphRequest.Callback() {
-                                public void onCompleted(GraphResponse response) {
-                                    Toast.makeText(EventoDetalles.this, "Publicación realizada: " + textoQueEnviar, Toast.LENGTH_LONG).show();
-                                }
-                            });
-                    request.executeAsync();
-                    dialogoSeleccion.dismiss();
+                    if (compartirConAPIGraph) {
+                        // enviar texto con API Graph
+                        Bundle params = new Bundle();
+                        final String textoQueEnviar = txtEvento.getText() + ", " + txtFecha.getText() + " en " + txtCiudad.getText();
+                        params.putString("message", textoQueEnviar);
+                        GraphRequest request = new GraphRequest(
+                                AccessToken.getCurrentAccessToken(),
+                                "/me/feed",
+                                params,
+                                HttpMethod.POST,
+                                new GraphRequest.Callback() {
+                                    public void onCompleted(GraphResponse response) {
+                                        Toast.makeText(EventoDetalles.this, "Publicación realizada: " + textoQueEnviar, Toast.LENGTH_LONG).show();
+                                    }
+                                });
+                        request.executeAsync();
+                    } else {
+                        // enviar texto con Share Dialog
+                        ShareLinkContent content = new ShareLinkContent.Builder().build();
+                        EventoDetalles.this.elShareDialog.show(content);
+                        dialogoSeleccion.dismiss();
+                    }
                 }
             });
             dialogoSeleccion.setButton(AlertDialog.BUTTON_POSITIVE, "Imagen", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    final BitmapDrawable imagenEvento = (BitmapDrawable) imgImagen.getDrawable();
-                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                    imagenEvento.getBitmap().compress(Bitmap.CompressFormat.PNG, 100, stream);
-                    final byte[] byteArray = stream.toByteArray();
-                    try{
-                        stream.close();
-                    } catch (IOException e){}
-                    Bundle params = new Bundle();
-                    params.putByteArray("source", byteArray);
-                    params.putString("caption", "Imagen del evento");
+                    if (compartirConAPIGraph) {
+                        // enviar una foto con API Graph
+                        final BitmapDrawable imagenEvento = (BitmapDrawable) imgImagen.getDrawable();
+                        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                        imagenEvento.getBitmap().compress(Bitmap.CompressFormat.PNG, 100, stream);
+                        final byte[] byteArray = stream.toByteArray();
+                        try {
+                            stream.close();
+                        } catch (IOException e) {}
+                        Bundle params = new Bundle();
+                        params.putByteArray("source", byteArray);
+                        params.putString("caption", "Imagen del evento");
 //                    params.putString("published", "true");
-                    GraphRequest request = new GraphRequest(
-                            AccessToken.getCurrentAccessToken(),
-                            "/me/photos",
-                            params,
-                            HttpMethod.POST, new GraphRequest.Callback() {
-                        public void onCompleted(GraphResponse response) {
-                            Toast.makeText(EventoDetalles.this, "" + byteArray.length + " Foto enviada: " + response.toString(), Toast.LENGTH_LONG).show();
-                        }
-                    });
-                    request.executeAsync();
-                    dialogoSeleccion.dismiss();
+                        GraphRequest request = new GraphRequest(
+                                AccessToken.getCurrentAccessToken(),
+                                "/me/photos",
+                                params,
+                                HttpMethod.POST, new GraphRequest.Callback() {
+                            public void onCompleted(GraphResponse response) {
+                                Toast.makeText(EventoDetalles.this, "" + byteArray.length + " Foto enviada: " + response.toString(), Toast.LENGTH_LONG).show();
+                            }
+                        });
+                        request.executeAsync();
+                    } else {
+                        final BitmapDrawable imagenEvento = (BitmapDrawable) imgImagen.getDrawable();
+                        // enviar una foto con Share Dialog
+                        SharePhoto photo = new SharePhoto.Builder().setBitmap(imagenEvento.getBitmap()).build();
+                        SharePhotoContent photoContent = new SharePhotoContent.Builder().addPhoto(photo).build();
+                        EventoDetalles.this.elShareDialog.show(photoContent);
+                        dialogoSeleccion.dismiss();
+                    }
                 }
             });
             dialogoSeleccion.show();
