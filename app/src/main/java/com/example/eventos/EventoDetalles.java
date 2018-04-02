@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -21,7 +22,18 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.facebook.AccessToken;
+import com.facebook.CallbackManager;
+import com.facebook.FacebookCallback;
+import com.facebook.FacebookException;
+import com.facebook.GraphRequest;
+import com.facebook.GraphResponse;
+import com.facebook.HttpMethod;
+import com.facebook.login.LoginManager;
+import com.facebook.login.LoginResult;
+import com.facebook.login.widget.LoginButton;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -71,6 +83,9 @@ public class EventoDetalles extends AppCompatActivity {
     StorageReference imagenRef;
     final int SOLICITUD_FOTOGRAFIAS_DRIVE = 102;
     Trace mTrace;
+
+    LoginButton loginButtonOficial;
+    private CallbackManager elCallbackManagerDeFacebook;
 
     @Override
     @AddTrace(name = "onCreate_eventosDetalles_Trace")
@@ -125,6 +140,27 @@ public class EventoDetalles extends AppCompatActivity {
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
         mFirebaseAnalytics.setUserProperty("evento_detalle", evento);
 
+        loginButtonOficial = (LoginButton) findViewById(R.id.login_button);
+        loginButtonOficial.setPublishPermissions("publish_actions");
+        this.elCallbackManagerDeFacebook = CallbackManager.Factory.create();
+        LoginManager.getInstance().registerCallback(this.elCallbackManagerDeFacebook, new FacebookCallback<LoginResult>() {
+            @Override
+            public void onSuccess(LoginResult loginResult) {
+                // Actualizar interfaz, quitar boton login, añadir boton enviar foto y enviar texto
+                Toast.makeText(EventoDetalles.this, "Facebook login success", Toast.LENGTH_SHORT).show();
+                EventoDetalles.this.loginButtonOficial.setEnabled(false);
+            }
+
+            @Override
+            public void onCancel() {
+                Toast.makeText(EventoDetalles.this, "Login Canceled", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onError(FacebookException error) {
+                Toast.makeText(EventoDetalles.this, "Login Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
 
     }
 
@@ -206,8 +242,81 @@ public class EventoDetalles extends AppCompatActivity {
                 intentWeb.putExtra("evento", evento);
                 startActivity(intentWeb);
                 break;
+            case R.id.compartir:
+                compartir();
+                break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void compartir() {
+        // comprobar que está el login realizado
+        if (AccessToken.getCurrentAccessToken() != null) {
+            // crea un alertdialog para que el usuario elija entre texto e imagen
+            final AlertDialog dialogoSeleccion = new AlertDialog.Builder(this).create();
+            dialogoSeleccion.setTitle("Compartir en Facebook");
+            dialogoSeleccion.setMessage("¿Qué quieres compartir?");
+            dialogoSeleccion.setButton(AlertDialog.BUTTON_NEUTRAL, "Texto", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    // enviar texto con API Graph
+                    Bundle params = new Bundle();
+                    final String textoQueEnviar = txtEvento.getText() + ", " + txtFecha.getText() + " en " + txtCiudad.getText();
+                    params.putString("message", textoQueEnviar);
+                    GraphRequest request = new GraphRequest(
+                            AccessToken.getCurrentAccessToken(),
+                            "/me/feed",
+                            params,
+                            HttpMethod.POST,
+                            new GraphRequest.Callback() {
+                                public void onCompleted(GraphResponse response) {
+                                    Toast.makeText(EventoDetalles.this, "Publicación realizada: " + textoQueEnviar, Toast.LENGTH_LONG).show();
+                                }
+                            });
+                    request.executeAsync();
+                    dialogoSeleccion.dismiss();
+                }
+            });
+            dialogoSeleccion.setButton(AlertDialog.BUTTON_POSITIVE, "Imagen", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    final BitmapDrawable imagenEvento = (BitmapDrawable) imgImagen.getDrawable();
+                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                    imagenEvento.getBitmap().compress(Bitmap.CompressFormat.PNG, 100, stream);
+                    final byte[] byteArray = stream.toByteArray();
+                    try{
+                        stream.close();
+                    } catch (IOException e){}
+                    Bundle params = new Bundle();
+                    params.putByteArray("source", byteArray);
+                    params.putString("caption", "Imagen del evento");
+//                    params.putString("published", "true");
+                    GraphRequest request = new GraphRequest(
+                            AccessToken.getCurrentAccessToken(),
+                            "/me/photos",
+                            params,
+                            HttpMethod.POST, new GraphRequest.Callback() {
+                        public void onCompleted(GraphResponse response) {
+                            Toast.makeText(EventoDetalles.this, "" + byteArray.length + " Foto enviada: " + response.toString(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                    request.executeAsync();
+                    dialogoSeleccion.dismiss();
+                }
+            });
+            dialogoSeleccion.show();
+        } else {
+            final AlertDialog advertenciaLogin = new AlertDialog.Builder(this).create();
+            advertenciaLogin.setTitle("Error");
+            advertenciaLogin.setMessage("Debes iniciar sesión para compartir");
+            advertenciaLogin.setButton(AlertDialog.BUTTON_NEUTRAL, "Ok", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    advertenciaLogin.dismiss();
+                }
+            });
+            advertenciaLogin.show();
+        }
     }
 
     public void seleccionarFotografiaDispositivo(View v, Integer solicitud) {
@@ -243,6 +352,7 @@ public class EventoDetalles extends AppCompatActivity {
                     break;
             }
         }
+        this.elCallbackManagerDeFacebook.onActivityResult(requestCode, resultCode, data);
     }
 
     public void subirAFirebaseStorage(Integer opcion, String ficheroDispositivo) {

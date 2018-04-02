@@ -37,4 +37,9 @@
         android:orderInCategory="106"
         android:title="Acerca de"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/compartir"
+        android:orderInCategory="107"
+        android:title="Compartir"
+        app:showAsAction="never" />
 </menu>
