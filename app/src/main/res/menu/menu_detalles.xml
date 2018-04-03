@@ -40,6 +40,12 @@
     <item
         android:id="@+id/compartir"
         android:orderInCategory="107"
-        android:title="Compartir"
+        android:title="Compartir en Facebook"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/compartirTwitter"
+        android:orderInCategory="108"
+        android:title="Compartir en Twitter"
+        app:showAsAction="never" />
+
 </menu>

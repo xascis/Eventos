@@ -3,6 +3,7 @@ package com.example.eventos;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
@@ -17,6 +18,7 @@ import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -57,6 +59,18 @@ import com.google.firebase.storage.OnPausedListener;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.twitter.sdk.android.core.Callback;
+import com.twitter.sdk.android.core.Result;
+import com.twitter.sdk.android.core.Twitter;
+import com.twitter.sdk.android.core.TwitterCore;
+import com.twitter.sdk.android.core.TwitterException;
+import com.twitter.sdk.android.core.TwitterSession;
+import com.twitter.sdk.android.core.identity.TwitterLoginButton;
+import com.twitter.sdk.android.core.models.Media;
+import com.twitter.sdk.android.core.models.Tweet;
+import com.twitter.sdk.android.core.services.MediaService;
+import com.twitter.sdk.android.core.services.StatusesService;
+import com.twitter.sdk.android.tweetcomposer.TweetComposer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -66,6 +80,10 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import okhttp3.MediaType;
+import retrofit.mime.TypedFile;
+import retrofit2.Call;
 
 import static com.example.eventos.Comun.acercaDe;
 import static com.example.eventos.Comun.getStorageReference;
@@ -94,6 +112,9 @@ public class EventoDetalles extends AppCompatActivity {
     private CallbackManager elCallbackManagerDeFacebook;
     private ShareDialog elShareDialog;
 
+    TwitterLoginButton twitterLoginButton;
+    TwitterSession twitterSession;
+
     @Override
     @AddTrace(name = "onCreate_eventosDetalles_Trace")
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,6 +122,7 @@ public class EventoDetalles extends AppCompatActivity {
         mTrace =
                 FirebasePerformance.getInstance().newTrace("trace_EventoDetalles");
         mTrace.start();
+        Twitter.initialize(this);
         setContentView(R.layout.evento_detalles);
         txtEvento = (TextView) findViewById(R.id.txtEvento);
         txtFecha = (TextView) findViewById(R.id.txtFecha);
@@ -187,6 +209,25 @@ public class EventoDetalles extends AppCompatActivity {
                 Toast.makeText(EventoDetalles.this, "Login Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
+
+        twitterSession = TwitterCore.getInstance().getSessionManager().getActiveSession();
+//        botonEnviarATwitter = (Button) findViewById(R.id.boton_EnviarATwitter);
+        twitterLoginButton = (TwitterLoginButton) findViewById(R.id.twitter_login_button);
+        twitterLoginButton.setCallback(new Callback<TwitterSession>() {
+            @Override
+            public void success(Result<TwitterSession> result) {
+                Toast.makeText(EventoDetalles.this, "Autenticado en twitter: " + result.data.getUserName(), Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void failure(TwitterException e) {
+                Toast.makeText(EventoDetalles.this, "Fallo en autentificación: " +
+                        e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
+        if (twitterSession != null) {
+            EventoDetalles.this.twitterLoginButton.setEnabled(false);
+        }
     }
 
     private class DownloadImageTask extends AsyncTask<String, Void, Bitmap> {
@@ -270,8 +311,137 @@ public class EventoDetalles extends AppCompatActivity {
             case R.id.compartir:
                 compartir();
                 break;
+            case R.id.compartirTwitter:
+                compartirTwitter();
+                break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void compartirTwitter() {
+        if (twitterSession != null) {
+            final String textoQueEnviar = txtEvento.getText() + ", " + txtFecha.getText() + " en " + txtCiudad.getText();
+            final BitmapDrawable imagenEvento = (BitmapDrawable) imgImagen.getDrawable();
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            Bitmap imagenEventoBitmap = imagenEvento.getBitmap();
+            imagenEventoBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+            final String path = MediaStore.Images.Media.insertImage(this.getContentResolver(), imagenEventoBitmap, "Title", null);
+            final Uri uriImagenEvento = Uri.parse(path);
+
+            final AlertDialog dialogoSeleccion = new AlertDialog.Builder(this).create();
+            dialogoSeleccion.setTitle("Compartir en Twitter");
+            dialogoSeleccion.setMessage("¿Qué quieres compartir?");
+            dialogoSeleccion.setButton(AlertDialog.BUTTON_NEGATIVE, "TweetComposer", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    // publicar mediante TweetComposer
+                    TweetComposer.Builder builder = new TweetComposer.Builder(EventoDetalles.this)
+                            .image(uriImagenEvento) // pasarle la URI
+                            .text(textoQueEnviar);
+                    builder.show();
+                }
+            });
+            dialogoSeleccion.setButton(AlertDialog.BUTTON_NEUTRAL, "Texto", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    StatusesService statusesService = TwitterCore.getInstance()
+                            .getApiClient(twitterSession).getStatusesService();
+                    Call<Tweet> call = statusesService.update(textoQueEnviar, null, null, null, null, null, null, null, null);
+                    call.enqueue(new Callback<Tweet>() {
+                        @Override
+                        public void success(Result<Tweet> result) {
+                            Toast.makeText(EventoDetalles.this, "Tweet publicado: " + result.response.message(), Toast.LENGTH_LONG).show();
+                        }
+
+                        @Override
+                        public void failure(TwitterException e) {
+                            Toast.makeText(EventoDetalles.this, "No se pudo publicar el tweet: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+            });
+            dialogoSeleccion.setButton(AlertDialog.BUTTON_POSITIVE, "Imagen", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    File photo = null;
+                    try {
+                        // 1. Abrimos el fichero con la imagen
+                        // imagen que queremos enviar. Como necesitamos un path (para
+                        // TypedFile) debe estar fuera de /res o /assets porque estos
+                        // estan dentro del .apk y NO tiene path
+                        photo = new File(getRealPathFromUri(EventoDetalles.this, uriImagenEvento));
+                        Log.d("PATH", "Este es el path: "+ getRealPathFromUri(EventoDetalles.this, uriImagenEvento));
+                    } catch (Exception e) {
+                        Log.d("miApp", "enviarImagen : excepcion: " + e.getMessage());
+                        return;
+                    }
+                    // 2. ponemos el fichero en un TypedFile
+                    TypedFile typedFile = new TypedFile("image/png", photo);
+                    // 3. obtenemos referencia al media service
+                    MediaService mediaService = TwitterCore.getInstance().getApiClient(twitterSession).getMediaService();
+                    // 3.1 ponemos la foto en el request body de la petición
+                    okhttp3.RequestBody requestBody = okhttp3.RequestBody.create(MediaType.parse("image/png"), photo);
+                    // 4. con el media service: enviamos la foto a Twitter
+                    Call<Media> call1 = mediaService.upload(
+                            requestBody, // foto que enviamos
+                            null, null);
+                    call1.enqueue(new Callback<Media>() {
+                        @Override
+                        public void success(Result<Media> result) {
+                            Toast.makeText(EventoDetalles.this, "imagen publicada: " + result.response.toString(), Toast.LENGTH_LONG);
+                            // 5. como he tenido éxito, la foto está en twitter, pero no en el
+                            // timeline (no se ve) he de escribir un tweet referenciando la foto
+                            // 6. obtengo referencia al status service
+                            StatusesService statusesService = TwitterCore.getInstance().getApiClient(twitterSession).getStatusesService();
+                            // 7. publico un tweet
+                            Call<Tweet> call2 = statusesService.update("Prueba de enviar imagen"
+                                            + System.currentTimeMillis(),
+                                    // mensaje del tweet
+                                    null, false, null, null, null, true, false,
+                                    "" + result.data.mediaId
+                                    // string con los identicadores (hasta 4, separado
+                                    //por coma) de las imágenes
+                                    // que quiero que aparezcan en este tweet. El mediaId
+                                    // referencia a la foto que acabo de subir previamente
+                            );
+                            call2.enqueue(new Callback<Tweet>() {
+                                @Override
+                                public void success(Result<Tweet> result) {
+                                    Toast.makeText(EventoDetalles.this,
+                                            "Tweet publicado: " + result.response.message().toString(),
+                                            Toast.LENGTH_LONG).show();
+                                }
+
+                                @Override
+                                public void failure(TwitterException exception) {
+                                    Toast.makeText(EventoDetalles.this,
+                                            "No se pudo publicar el tweet:" + exception.getMessage(),
+                                            Toast.LENGTH_LONG).show();
+                                }
+                            });
+                        }
+                        @Override
+                        public void failure(TwitterException exception) {
+                            Toast.makeText(EventoDetalles.this,
+                                    "No se pudo publicar el tweet:" + exception.getMessage(),
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+            });
+            dialogoSeleccion.show();
+        } else {
+            final AlertDialog advertenciaLogin = new AlertDialog.Builder(this).create();
+            advertenciaLogin.setTitle("Error");
+            advertenciaLogin.setMessage("Debes iniciar sesión para compartir");
+            advertenciaLogin.setButton(AlertDialog.BUTTON_NEUTRAL, "Ok", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    advertenciaLogin.dismiss();
+                }
+            });
+            advertenciaLogin.show();
+        }
     }
 
     private void compartir() {
@@ -320,7 +490,8 @@ public class EventoDetalles extends AppCompatActivity {
                         final byte[] byteArray = stream.toByteArray();
                         try {
                             stream.close();
-                        } catch (IOException e) {}
+                        } catch (IOException e) {
+                        }
                         Bundle params = new Bundle();
                         params.putByteArray("source", byteArray);
                         params.putString("caption", "Imagen del evento");
@@ -394,6 +565,7 @@ public class EventoDetalles extends AppCompatActivity {
             }
         }
         this.elCallbackManagerDeFacebook.onActivityResult(requestCode, resultCode, data);
+        twitterLoginButton.onActivityResult(requestCode, resultCode, data);
     }
 
     public void subirAFirebaseStorage(Integer opcion, String ficheroDispositivo) {
@@ -622,5 +794,21 @@ public class EventoDetalles extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
         mTrace.stop();
+    }
+
+    // convierte el path content://media/somethin/other/numbers en el path real
+    public static String getRealPathFromUri(Context context, Uri contentUri) {
+        Cursor cursor = null;
+        try {
+            String[] proj = { MediaStore.Images.Media.DATA };
+            cursor = context.getContentResolver().query(contentUri, proj, null, null, null);
+            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+            cursor.moveToFirst();
+            return cursor.getString(column_index);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
     }
 }

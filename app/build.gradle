@@ -23,6 +23,7 @@ android {
     }
     repositories {
         mavenCentral() // descarga el sdk de facebook
+        jcenter()
     }
 }
 
@@ -43,6 +44,8 @@ dependencies {
     }
     compile 'com.google.firebase:firebase-perf:11.8.0'
     compile 'com.facebook.android:facebook-android-sdk:[4,5)'
+    compile 'com.twitter.sdk.android:twitter:3.1.1'
+    compile 'com.squareup.retrofit:retrofit:1.9.0'
 
     implementation 'com.google.firebase:firebase-core:11.8.0'
     implementation 'com.google.firebase:firebase-firestore:11.8.0'
